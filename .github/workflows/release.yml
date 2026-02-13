@@ -1,0 +1,100 @@
+name: Build installers & release
+
+on:
+  push:
+    tags:
+      - "v*"
+      # - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build installers (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Build installer (macOS/Linux)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon clean packageInstaller -PappVersion=${GITHUB_REF_NAME#v}
+
+      - name: Build installer (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          .\gradlew.bat --no-daemon clean packageInstaller -PappVersion=$env:GITHUB_REF_NAME.Replace("v","")
+
+      - name: Rename macOS installer
+        if: runner.os == 'macOS'
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          mv build/jpackage/installer/*.dmg TYM-${VERSION}-macos.dmg
+
+      - name: Rename Windows installer
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $version = $env:GITHUB_REF_NAME.Replace("v","")
+          Rename-Item build/jpackage/installer\*.msi "TYM-$version-windows.msi"
+
+      - name: Upload installer artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-macos
+          path: build/jpackage/installer/*.dmg
+          if-no-files-found: error
+
+      - name: Upload installer artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-windows
+          path: build/jpackage/installer/*.msi
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download macOS installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: installer-macos
+          path: dist
+
+      - name: Download Windows installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: installer-windows
+          path: dist
+
+      - name: List dist files
+        run: ls -la dist
+
+      - name: Create release + upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
