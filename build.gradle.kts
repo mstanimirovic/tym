@@ -53,10 +53,7 @@ java {
 }
 
 val appName = "TYM"
-val appVersion = (findProperty("appVersion") as String?)
-    ?: System.getenv("GITHUB_REF_NAME")?.removePrefix("v")
-    ?: "1.0.0"
-
+val appVersion = "1.0.2"
 
 tasks.named<ShadowJar>("shadowJar") {
     archiveClassifier.set("")
