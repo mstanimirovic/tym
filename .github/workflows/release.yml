@@ -54,7 +54,7 @@ jobs:
         shell: powershell
         run: |
           $version = "${{ github.ref_name }}".TrimStart("v")
-          Rename-Item build/jpackage/installer/*.msi "TYM-$version-windows.msi"
+          Get-ChildItem build/jpackage/installer/*.msi | Rename-Item -NewName "TYM-$version-windows.msi"
 
       - name: Upload installer artifact (macOS)
         if: runner.os == 'macOS'
