@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "v*"
-      # - "*"
 
 permissions:
   contents: write
@@ -36,32 +35,33 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon clean packageInstaller -PappVersion=${GITHUB_REF_NAME#v}
+          ./gradlew --no-daemon clean packageInstaller -PappVersion=${{ github.ref_name }} --info
 
       - name: Build installer (Windows)
         if: runner.os == 'Windows'
-        run: |
-          .\gradlew.bat --no-daemon clean packageInstaller -PappVersion=$env:GITHUB_REF_NAME.Replace("v","")
+        shell: powershell
+        run: .\gradlew.bat --no-daemon clean packageInstaller -PappVersion=$version --info
 
       - name: Rename macOS installer
         if: runner.os == 'macOS'
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
           mv build/jpackage/installer/*.dmg TYM-${VERSION}-macos.dmg
 
       - name: Rename Windows installer
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          $version = $env:GITHUB_REF_NAME.Replace("v","")
-          Rename-Item build/jpackage/installer\*.msi "TYM-$version-windows.msi"
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          Rename-Item build/jpackage/installer/*.msi "TYM-$version-windows.msi"
 
       - name: Upload installer artifact (macOS)
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: installer-macos
-          path: build/jpackage/installer/*.dmg
+          path: TYM-*.dmg
           if-no-files-found: error
 
       - name: Upload installer artifact (Windows)
@@ -69,7 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installer-windows
-          path: build/jpackage/installer/*.msi
+          path: build/jpackage/installer/TYM-*.msi
           if-no-files-found: error
 
   release:
