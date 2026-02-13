@@ -105,13 +105,10 @@ public class TextRenderer {
         this.charSpacing = charWidth * 0.3f;
     }
 
-    /**
-     * Renderuje tekst na određenoj poziciji
-     */
     public void render(String text, float x, float y, Shader shader) {
         float currentX = x;
 
-        glLineWidth(3.0f);  // Debljina linija za tekst
+        glLineWidth(3.0f);
 
         for (char c : text.toCharArray()) {
             if (c == ' ') {
@@ -127,21 +124,16 @@ public class TextRenderer {
             currentX += charWidth + charSpacing;
         }
 
-        glLineWidth(1.0f);  // Vrati default
+        glLineWidth(1.0f);
     }
 
-    /**
-     * Renderuje pojedinačni karakter
-     */
     private void renderChar(float[][] segments, float x, float y, Shader shader) {
         for (float[] segment : segments) {
-            // Transformiši segment koordinate u world space
             float x1 = x + segment[0] * charWidth;
             float y1 = y + segment[1] * charHeight;
             float x2 = x + segment[2] * charWidth;
             float y2 = y + segment[3] * charHeight;
 
-            // Kreiraj vertices za liniju
             float[] vertices = {x1, y1, x2, y2};
 
             VertexBuffer vbo = new VertexBuffer(vertices, GL_STATIC_DRAW);
@@ -154,15 +146,11 @@ public class TextRenderer {
             vao.bind();
             glDrawArrays(GL_LINES, 0, 2);
 
-            // Cleanup (u produkciji bi ovo bilo cached)
             vao.dispose();
             vbo.dispose();
         }
     }
 
-    /**
-     * Računa širinu teksta
-     */
     public float getTextWidth(String text) {
         int visibleChars = 0;
         for (char c : text.toCharArray()) {
